@@ -45,8 +45,30 @@ page.open(config.login_url, function() {
         window.location.hash = '#account/checkinhistory'
       }),
       waitfor(1000).then(function() {
-        page.render('example.png');
-        phantom.exit();
+        page.evaluate(function() {
+          var lowMs = new Date().getTime();
+          lowMs = lowMs - 90 * 1000*60*60*24; //  UI only allows 90 days
+          var low = new Date(lowMs);
+          $('input.lowDate').val(
+            (low.getMonth()+1) + '/' + low.getDate() + '/' + low.getFullYear()
+          );
+          $('button.showButton').click();
+        });
+        waitfor(3000).then(function() {
+          var data = page.evaluate(function() {
+            var trs = $('#checkinhistory table tbody tr');
+            return $.map(trs, function(tr) {
+              var dateStr = $(tr.children[0]).text();
+              var timeStr = $(tr.children[1]).text();
+              var loc = $(tr.children[2]).text();
+              var date = Date.parse(dateStr + ' ' + timeStr);
+              return [date, loc];
+            });
+          });
+          console.log(data);
+          page.render('example.png');
+          phantom.exit();
+        });
       });
     });
   });
