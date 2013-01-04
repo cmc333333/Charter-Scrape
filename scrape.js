@@ -1,3 +1,4 @@
+phantom.injectJs('waitfor.js');
 var fs = require('fs');
 var yaml = require('yaml');
 var $ = require('jquery');
@@ -29,10 +30,25 @@ var config = {
 $.extend(config, providedConfig);
 
 page.open(config.login_url, function() {
-  //  Wait for the page to load, then take a picture
-  window.setTimeout(function() {
-    page.render('example.png');
-    phantom.exit();
-  }, 1000);
+  //  Wait for the page to load
+  waitfor(1000).then(function() {
+    //  Log in
+    page.evaluate(function(config) {
+      $('#loginform input[type=text]').val(config.username);
+      $('#loginform input[type=password]').val(config.password);
+      $('#loginform').submit();
+    }, config);
+    //  Wait for the new page to load
+    waitfor(3000).then(function() {
+      //  Open the checkin history
+      page.evaluate(function() {
+        window.location.hash = '#account/checkinhistory'
+      }),
+      waitfor(1000).then(function() {
+        page.render('example.png');
+        phantom.exit();
+      });
+    });
+  });
 });
 
