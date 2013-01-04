@@ -36,6 +36,7 @@ function writeCSV(data) {
   var toWrite = '';
   $.each(data, function(index) {
     var date = this[0];
+    //  unix time, iso time, location
     var row = [date.getTime(), date.toISOString(), this[1]];
     toWrite = toWrite + csv.stringify(row);
   });
@@ -45,7 +46,7 @@ function writeCSV(data) {
 
 //  Let's kick it off by loading the page
 page.open(config.login_url, function() {
-  //  Wait for the page to load
+  //  Wait for the login page to load
   waitfor(1000).then(function() {
     //  Log in
     page.evaluate(function(config) {
@@ -53,23 +54,28 @@ page.open(config.login_url, function() {
       $('#loginform input[type=password]').val(config.password);
       $('#loginform').submit();
     }, config);
-    //  Wait for the new page to load
+    //  Wait for the home page to load
     waitfor(3000).then(function() {
       //  Open the checkin history
       page.evaluate(function() {
         window.location.hash = '#account/checkinhistory'
       }),
+      //  Wait to see checkin history
       waitfor(1000).then(function() {
         page.evaluate(function() {
+          //  Try to get more data by moving the time frame as far back as we
+          //  can. The UI only allows 90 days
           var lowMs = new Date().getTime();
-          lowMs = lowMs - 90 * 1000*60*60*24; //  UI only allows 90 days
+          lowMs = lowMs - 90 * 1000*60*60*24;
           var low = new Date(lowMs);
           $('input.lowDate').val(
             (low.getMonth()+1) + '/' + low.getDate() + '/' + low.getFullYear()
           );
           $('button.showButton').click();
         });
+        //  Wait for the updated history
         waitfor(3000).then(function() {
+          //  Now, scrape the data
           var data = page.evaluate(function() {
             var trs = $('#checkinhistory table tbody tr');
             return $.map(trs, function(tr) {
