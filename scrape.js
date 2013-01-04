@@ -1,9 +1,11 @@
 phantom.injectJs('waitfor.js');
 var fs = require('fs');
+var csv = require('a-csv');
+var page = require('webpage').create();
 var yaml = require('yaml');
 var $ = require('jquery');
-var page = require('webpage').create();
 
+//  First try to read in the config -- throw any errors that arise
 if (!fs.isReadable('config.yaml')) {
   console.log('unable to read config.yaml');
   phantom.exit();
@@ -23,12 +25,25 @@ if (!('password' in providedConfig)) {
   phantom.exit();
 }
 
+//  Default configurations can be overwritten
 var config = {
   login_url: 'https://www.myiclubonline.com/iclub/members'
 }
-
 $.extend(config, providedConfig);
 
+//  Now we define what we'll do with the data we get back
+function writeCSV(data) {
+  var toWrite = '';
+  $.each(data, function(index) {
+    var date = this[0];
+    var row = [date.getTime(), date.toISOString(), this[1]];
+    toWrite = toWrite + csv.stringify(row);
+  });
+  console.log(toWrite);
+}
+
+
+//  Let's kick it off by loading the page
 page.open(config.login_url, function() {
   //  Wait for the page to load
   waitfor(1000).then(function() {
@@ -62,11 +77,10 @@ page.open(config.login_url, function() {
               var timeStr = $(tr.children[1]).text();
               var loc = $(tr.children[2]).text();
               var date = Date.parse(dateStr + ' ' + timeStr);
-              return [date, loc];
+              return [[date, loc]];
             });
           });
-          console.log(data);
-          page.render('example.png');
+          writeCSV(data);
           phantom.exit();
         });
       });
