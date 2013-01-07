@@ -2,17 +2,23 @@ phantom.injectJs('waitfor.js');
 var fs = require('fs');
 var csv = require('a-csv');
 var page = require('webpage').create();
+var system = require('system');
 var yaml = require('yaml');
 var $ = require('jquery');
 
+var configFileName = 'config.yaml';
+if (system.args.length > 1) {
+  configFileName = system.args[1];
+}
+
 //  First try to read in the config -- throw any errors that arise
-if (!fs.isReadable('config.yaml')) {
-  console.log('unable to read config.yaml');
+if (!fs.isReadable(configFileName)) {
+  console.log('unable to read ' + configFileName);
   phantom.exit();
 }
-var providedConfig = yaml.eval(fs.open('config.yaml', 'r').read());
+var providedConfig = yaml.eval(fs.open(configFileName, 'r').read());
 if (providedConfig instanceof Object == false) {
-  console.log('config.yaml not a yaml file?');
+  console.log(configFileName + ' not a yaml file?');
   phantom.exit();
 }
 
